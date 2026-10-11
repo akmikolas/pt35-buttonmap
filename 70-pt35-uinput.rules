@@ -1,0 +1,24 @@
+# Allow members of the input group to create uinput virtual input devices.
+#
+# Why: the PocketTerm35 key-remap daemon must write /dev/uinput to synthesise a
+# virtual mouse. Debian ships /dev/uinput as root:root 0600, which forces the daemon
+# to run as root. With this rule it can drop to an ordinary user (only needing the
+# input group), removing a long-lived root process that can read every keystroke.
+#
+# Install:
+#   sudo install -m 0644 70-pt35-uinput.rules /etc/udev/rules.d/
+#   sudo usermod -aG input <user the daemon runs as>
+#   sudo udevadm control --reload && sudo udevadm trigger
+#   # that user must log in again for the group change to apply
+#
+# Uninstall: delete the file, then run
+#   sudo udevadm control --reload && sudo udevadm trigger
+
+# uinput is a misc device with no vendor/product attributes, so match by name
+KERNEL=="uinput", SUBSYSTEM=="misc", MODE="0660", GROUP="input"
+
+# With systemd-logind's uaccess mechanism, the locally logged-in user is granted access too
+KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess"
+
+# the uinput module must be loaded for this device node to exist
+KERNEL=="uinput", SUBSYSTEM=="misc", RUN+="/sbin/modprobe uinput"

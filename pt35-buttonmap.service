@@ -1,0 +1,34 @@
+[Unit]
+Description=PocketTerm35 panel key remap (D-pad moves pointer, tap gestures click; letter keys untouched)
+Documentation=file:/usr/local/share/doc/pt35-buttonmap/README.md
+# The keyboard is a USB OTG device, so wait for the USB subsystem to settle.
+After=multi-user.target systemd-udev-settle.service
+Wants=systemd-udev-settle.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/bin/pt35-buttonmap.py --config /etc/pt35-buttonmap.toml
+# Restart automatically after the keyboard is unplugged or re-enumerated.
+Restart=always
+RestartSec=2
+# Unprivileged by default, together with 70-pt35-uinput.rules (which sets
+# /dev/uinput to root:input 0660): any member of the input group can read keyboard
+# events and create a virtual mouse, so a process able to read every keystroke does
+# not have to hold root permanently.
+# install.sh substitutes the account given via --user for the placeholder below;
+# to run as root instead, set User=root (see README, "Security").
+User=__PT35_USER__
+SupplementaryGroups=input
+# Critical: /run belongs to root, and an unprivileged process cannot create or
+# delete files directly in it (deleting needs write permission on the parent
+# directory; the socket's own 0660 is not enough). RuntimeDirectory makes systemd
+# pre-create /run/pt35-buttonmap and hand it to the service user; both the control
+# socket and the mode state file live inside it.
+RuntimeDirectory=pt35-buttonmap
+RuntimeDirectoryMode=0755
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pt35-buttonmap
+
+[Install]
+WantedBy=multi-user.target
